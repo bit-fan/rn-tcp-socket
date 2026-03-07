@@ -1,0 +1,72 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# React Native / Android / iOS
+/android/
+/android/**/build/
+/android/.gradle/
+/ios/Pods/
+/ios/build/
+/ios/DerivedData/
+*.keystore
+
+# Build output
+/build/
+/dist/
+
+# Expo
+.expo/
+.expo-shared/
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor/IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.iml
+
+# Environment
+.env
+.env.*
+
+# Misc
+coverage/
+*.seed
+*.pid
+*.sqlite
+*.db
+*.orig
+
+# Metro / packager cache
+/metro-cache/
+/npm-cache/
+/babel-cache/
+.tmp/
+
+# Windows
+ehthumbs.db
+
+# Mac
+.AppleDouble
+.LSOverride
+
+# Temporary files
+*.swp
+*.swo
+
+# Lockfiles (usually committed, uncomment if you want to ignore)
+# package-lock.json
+# yarn.lock

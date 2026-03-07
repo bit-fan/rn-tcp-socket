@@ -1,0 +1,24 @@
+{
+  "name": "@bit-fan/rn-tcp-socket",
+  "version": "1.0.1",
+  "description": "to abstract RN TCP server",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "node ./tests/run-tests.js",
+    "test:integration": "node ./tests/tcp-client-integration.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bit-fan/rn-tcp-socket.git"
+  },
+  "author": "bit-fan",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bit-fan/rn-tcp-socket/issues"
+  },
+  "homepage": "https://github.com/bit-fan/rn-tcp-socket#readme",
+  "dependencies": {
+    "react-native-tcp-socket": "^6.4.1"
+  }
+}

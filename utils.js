@@ -28,15 +28,15 @@ export function sendJson(socket, obj) {
     return false;
   }
 }
-export const verifyPrefix = (prefix) => {
-  if (typeof prefix !== 'string') return false;
-  const s = prefix.trim();
+export const verifyIpPattern = (ipPattern) => {
+  if (typeof ipPattern !== 'string') return false;
+  const s = ipPattern.trim();
   // octet: 0-255
   const octet = '(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)';
   const part = `(?:${octet}|\*)`;
   const re = new RegExp(`^${part}\\.${part}\\.${part}\\.${part}$`);
   if (!re.test(s)) return false;
-  // allow at most one wildcard asterisk in the prefix
+  // allow at most one wildcard asterisk in the IP pattern
   const stars = (s.match(/\*/g) || []).length;
   return stars <= 1;
 };

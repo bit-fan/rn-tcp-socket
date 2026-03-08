@@ -140,7 +140,7 @@ export class TcpClient {
 
   static async *scanHostsYield(options) {
     const {
-      prefix,
+      ipPattern,
       hosts: hostsArg,
       port = DEFAULT_PORT,
       timeoutMs = DEFAULT_SCAN_TIMEOUT_MS,
@@ -150,16 +150,15 @@ export class TcpClient {
 
     const hosts = Array.isArray(hostsArg)
       ? hostsArg.slice()
-      : typeof prefix === 'string'
-        ? FROM_0_TO_255.map((i) => `${prefix.replace('*', i)}`)
+      : typeof ipPattern === 'string'
+        ? FROM_0_TO_255.map((i) => `${ipPattern.replace('*', i)}`)
         : [];
 
     if (hosts.length === 0)
-      throw new Error('Either prefix or hosts array must be provided');
+      throw new Error('Either ipPattern or hosts array must be provided');
 
     const targetPort = Number(port);
 
-    // producer-consumer queue as before
     let idx = 0;
     const total = hosts.length;
     let running = 0;
@@ -188,6 +187,11 @@ export class TcpClient {
     if (signal && typeof signal.addEventListener === 'function') {
       if (signal.aborted) onAbort();
       else signal.addEventListener('abort', onAbort);
+    }
+
+    // Immediately throw if signal was already aborted
+    if (aborted) {
+      throw new Error('aborted');
     }
 
     const raceWithAbort = (p) => {

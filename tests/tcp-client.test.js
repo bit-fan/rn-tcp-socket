@@ -2,7 +2,9 @@ import assert from 'assert';
 import { TcpClient } from '../tcp-client.js';
 
 const received = [];
-const c = new TcpClient('127.0.0.1', 12345, msg => received.push(msg));
+const c = new TcpClient('127.0.0.1', 12345, (msg) => {
+  if (msg && msg.status === 'data') received.push(msg.data);
+});
 
 const raw = JSON.stringify({ hi: 'there' });
 const part1 = raw.slice(0, 4);

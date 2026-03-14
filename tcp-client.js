@@ -16,8 +16,8 @@ export class TcpClient {
   }
 
   async connect(timeoutMs = 5000) {
-  if (this.client) return Promise.resolve(this.client);
-  const mod = await import('react-native-tcp-socket').catch(() => null);
+    if (this.client) return Promise.resolve(this.client);
+    const mod = await import('react-native-tcp-socket').catch(() => null);
     if (!mod) throw new Error('react-native-tcp-socket not available');
     const TcpSocket = mod.default || mod;
     this.client = TcpSocket.createConnection({
@@ -28,7 +28,7 @@ export class TcpClient {
       const onConnect = () => {
         this.client.on('data', this._handleData.bind(this));
         this.client.on('close', () => {
-          if (this.onData) this.onData('closed');
+          if (this.onData) this.onData({ status: 'close' });
         });
         clearHandlers();
         resolve(this.client);
@@ -41,10 +41,10 @@ export class TcpClient {
       const clearHandlers = () => {
         try {
           this.client.removeListener('connect', onConnect);
-        } catch (_) {}
+        } catch (_) { }
         try {
           this.client.removeListener('error', onError);
-        } catch (_) {}
+        } catch (_) { }
       };
 
       this.client.on('connect', onConnect);
@@ -70,17 +70,17 @@ export class TcpClient {
       state,
       chunk,
       (msg) => {
-        if (this.onData) this.onData(msg);
+        if (this.onData) this.onData({ status: 'data', data: msg });
       },
       (err, raw) => {
-        if (this.onData) this.onData({ error: err, raw });
+        if (this.onData) this.onData({ status: 'error', data: err, raw });
       },
     );
     this._buffer = state.buffer;
   }
 
   send(message, destroyAfterSend = false) {
-    if (!this.client) this.connect().catch(() => {});
+    if (!this.client) this.connect().catch(() => { });
     try {
       if (!this.client) return false;
       sendJson(this.client, message);
@@ -95,7 +95,7 @@ export class TcpClient {
     if (this.client) {
       try {
         this.client.destroy();
-      } catch (_) {}
+      } catch (_) { }
       this.client = null;
       this._buffer = '';
     }
@@ -111,10 +111,10 @@ export class TcpClient {
       const cleanup = () => {
         try {
           client.removeListener('connect', onConnect);
-        } catch (_) {}
+        } catch (_) { }
         try {
           client.removeListener('error', onError);
-        } catch (_) {}
+        } catch (_) { }
         if (timer) {
           clearTimeout(timer);
           timer = null;
@@ -217,7 +217,7 @@ export class TcpClient {
           );
           try {
             client.destroy();
-          } catch (e) {}
+          } catch (e) { }
           successes++;
           pushResult({ host, result: true });
           if (successes >= maxResults) aborted = true;
@@ -235,7 +235,7 @@ export class TcpClient {
       })();
     };
 
-  for (let i = 0; i < DEFAULT_SCAN_CONCURRENCY && i < total; i++) startOne();
+    for (let i = 0; i < DEFAULT_SCAN_CONCURRENCY && i < total; i++) startOne();
     while ((buffer.length > 0 || running > 0 || idx < total) && !aborted) {
       if (buffer.length === 0)
         await new Promise((res) => {
@@ -252,7 +252,7 @@ export class TcpClient {
     }
 
     if (signal && typeof signal.removeEventListener === 'function') {
-      try { signal.removeEventListener('abort', onAbort); } catch (_) {}
+      try { signal.removeEventListener('abort', onAbort); } catch (_) { }
     }
   }
 }

@@ -12,7 +12,9 @@ console.log('Testing data transmission functionality...');
     console.log('Test 1: JSON message parsing and handling');
     
     const receivedMessages = [];
-    const client = new TcpClient('127.0.0.1', 12345, (msg) => receivedMessages.push(msg));
+    const client = new TcpClient('127.0.0.1', 12345, (msg) => {
+      if (msg && msg.status === 'data') receivedMessages.push(msg.data);
+    });
     
     // Test various JSON objects through the data handler
     const testJsonData = [
@@ -96,10 +98,10 @@ console.log('Testing data transmission functionality...');
     const errorMessages = [];
     
     const errorClient = new TcpClient('127.0.0.1', 12345, (msg) => {
-      if (msg && msg.error) {
+      if (msg && msg.status === 'error') {
         errorMessages.push(msg);
-      } else {
-        receivedMessages.push(msg);
+      } else if (msg && msg.status === 'data') {
+        receivedMessages.push(msg.data);
       }
     });
     
@@ -231,7 +233,9 @@ console.log('Testing data transmission functionality...');
     console.log('Test 8: Large data handling');
     
     receivedMessages.length = 0;
-    const largeClient = new TcpClient('127.0.0.1', 12345, (msg) => receivedMessages.push(msg));
+    const largeClient = new TcpClient('127.0.0.1', 12345, (msg) => {
+      if (msg && msg.status === 'data') receivedMessages.push(msg.data);
+    });
     
     // Create a large message
     const largeMessage = {

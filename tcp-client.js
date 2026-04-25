@@ -3,7 +3,12 @@ import {
   DEFAULT_SCAN_CONCURRENCY,
   DEFAULT_SCAN_TIMEOUT_MS,
 } from './defaults.js';
-import { feedDelimitedBuffer, sendJson } from './utils.js';
+import {
+  attachSocketHelpers,
+  feedDelimitedBuffer,
+  sendJson,
+  sendReset,
+} from './utils.js';
 const FROM_0_TO_255 = [...Array(256).keys()];
 
 export class TcpClient {
@@ -25,19 +30,7 @@ export class TcpClient {
       port: this.port,
     });
     return new Promise((resolve, reject) => {
-      const onConnect = () => {
-        this.client.on('data', this._handleData.bind(this));
-        this.client.on('close', () => {
-          if (this.onData) this.onData({ status: 'close' });
-        });
-        clearHandlers();
-        resolve(this.client);
-      };
-      const onError = (err) => {
-        clearHandlers();
-        reject(err);
-      };
-
+      let timer = null;
       const clearHandlers = () => {
         try {
           this.client.removeListener('connect', onConnect);
@@ -46,20 +39,36 @@ export class TcpClient {
           this.client.removeListener('error', onError);
         } catch (_) { }
       };
+      const cleanup = () => {
+        clearHandlers();
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+      };
+
+      const onConnect = () => {
+        attachSocketHelpers(this.client);
+        this.client.on('data', this._handleData.bind(this));
+        this.client.on('close', () => {
+          if (this.onData) this.onData({ status: 'close' });
+        });
+        cleanup();
+        resolve(this.client);
+      };
+      const onError = (err) => {
+        cleanup();
+        reject(err);
+      };
 
       this.client.on('connect', onConnect);
       this.client.on('error', onError);
 
       if (timeoutMs) {
-        const to = setTimeout(() => {
-          clearHandlers();
+        timer = setTimeout(() => {
+          cleanup();
           reject(new Error('connect timeout'));
         }, timeoutMs);
-        const origResolve = resolve;
-        resolve = (...a) => {
-          clearTimeout(to);
-          origResolve(...a);
-        };
       }
     });
   }
@@ -74,6 +83,9 @@ export class TcpClient {
       },
       (err, raw) => {
         if (this.onData) this.onData({ status: 'error', data: err, raw });
+        if (this.client && typeof this.client.reset === 'function') {
+          this.client.reset();
+        }
       },
     );
     this._buffer = state.buffer;
@@ -99,6 +111,11 @@ export class TcpClient {
       this.client = null;
       this._buffer = '';
     }
+  }
+
+  reset() {
+    if (!this.client) return false;
+    return sendReset(this.client);
   }
 
   static async connectHost(hostArg, portArg, timeoutMs = 3000) {

@@ -17,9 +17,25 @@ assert.deepStrictEqual(received[0], { hi: 'there' });
 
 let written = null;
 c.client = { write: (s, _opts, cb) => { written = s; if (typeof cb === 'function') cb(); }, destroy: () => { } };
-const ok = c.send({ ping: 1 }, true);
+const ok = c.send({ ping: 1 }, false);
 assert.strictEqual(ok, true);
 assert.strictEqual(written, JSON.stringify({ ping: 1 }) + '\n');
+
+const resetOk = c.reset();
+assert.strictEqual(resetOk, true);
+assert.strictEqual(written, JSON.stringify({ __reset: true }) + '\n');
+
+let resetCalled = false;
+const errorSocket = {
+  write: (s, _opts, cb) => { written = s; if (typeof cb === 'function') cb(); },
+  destroy: () => {},
+  reset: () => { resetCalled = true; return true; },
+};
+
+c.client = errorSocket;
+
+c._handleData(Buffer.from('not json\n'));
+assert.strictEqual(resetCalled, true, 'reset should be called when parse error occurs');
 
 c.destroy();
 assert.strictEqual(c.client, null);

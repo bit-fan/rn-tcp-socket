@@ -1,3 +1,17 @@
+export const RESET_KEY = '__reset';
+
+export function buildResetMessage() {
+  return { [RESET_KEY]: true };
+}
+
+export function isResetMessage(message) {
+  return (
+    message &&
+    typeof message === 'object' &&
+    message[RESET_KEY] === true
+  );
+}
+
 export function feedDelimitedBuffer(state, chunk, onMessage, onError) {
   if (!state) state = {};
   state.buffer = state.buffer || '';
@@ -14,12 +28,17 @@ export function feedDelimitedBuffer(state, chunk, onMessage, onError) {
     state.buffer = state.buffer.slice(idx + 1);
     if (!raw) continue;
     try {
-      if (typeof onMessage === 'function') onMessage(JSON.parse(raw));
+      const parsed = JSON.parse(raw);
+      if (isResetMessage(parsed)) {
+        continue;
+      }
+      if (typeof onMessage === 'function') onMessage(parsed);
     } catch (e) {
       if (typeof onError === 'function') onError(e, raw);
     }
   }
 }
+
 export function sendJson(socket, obj) {
   try {
     socket.write(JSON.stringify(obj) + '\n');
@@ -28,6 +47,22 @@ export function sendJson(socket, obj) {
     return false;
   }
 }
+
+export function sendReset(socket) {
+  return sendJson(socket, buildResetMessage());
+}
+
+export function attachSocketHelpers(socket) {
+  if (!socket || typeof socket.write !== 'function') return socket;
+  if (typeof socket.reset !== 'function') {
+    socket.reset = () => sendReset(socket);
+  }
+  if (typeof socket.sendJson !== 'function') {
+    socket.sendJson = (obj) => sendJson(socket, obj);
+  }
+  return socket;
+}
+
 export const verifyIpPattern = (ipPattern) => {
   if (typeof ipPattern !== 'string') return false;
   const s = ipPattern.trim();

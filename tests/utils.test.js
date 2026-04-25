@@ -1,5 +1,12 @@
 import assert from 'assert';
-import { feedDelimitedBuffer, sendJson } from '../utils.js';
+import {
+  attachSocketHelpers,
+  buildResetMessage,
+  feedDelimitedBuffer,
+  isResetMessage,
+  sendJson,
+  sendReset,
+} from '../utils.js';
 
 // Test that feedDelimitedBuffer correctly parses complete messages
 const state = { buffer: '' };
@@ -27,11 +34,44 @@ const combined = JSON.stringify({ one: 1 }) + '\n' + JSON.stringify({ two: 2 }) 
 feedDelimitedBuffer(state3, Buffer.from(combined), msg => messages3.push(msg), err => { throw err; });
 assert.strictEqual(messages3.length, 2);
 
+// Test reset marker clears stale state and starts a fresh buffer
+const state4 = { buffer: '{"x":1' };
+const messages4 = [];
+const errors4 = [];
+feedDelimitedBuffer(
+  state4,
+  Buffer.from('bad\n{"__reset":true}\n{"y":2}\n'),
+  msg => messages4.push(msg),
+  err => errors4.push(err),
+);
+assert.strictEqual(errors4.length, 1);
+assert.strictEqual(messages4.length, 1);
+assert.deepStrictEqual(messages4[0], { y: 2 });
+assert.strictEqual(state4.buffer, '');
+
 // sendJson should call socket.write with JSON + '\n'
 let written = null;
 const mockSocket = { write: (s) => { written = s; } };
 const ok = sendJson(mockSocket, { z: 9 });
 assert.strictEqual(ok, true);
 assert.strictEqual(written, JSON.stringify({ z: 9 }) + '\n');
+
+// sendReset should emit a reset JSON frame
+written = null;
+const resetResult = sendReset(mockSocket);
+assert.strictEqual(resetResult, true);
+assert.strictEqual(written, JSON.stringify(buildResetMessage()) + '\n');
+assert.strictEqual(isResetMessage(buildResetMessage()), true);
+
+// attachSocketHelpers should add convenience methods to socket objects
+const sentData = [];
+const helperSocket = { write: (data) => sentData.push(data) };
+attachSocketHelpers(helperSocket);
+assert.strictEqual(typeof helperSocket.reset, 'function');
+assert.strictEqual(typeof helperSocket.sendJson, 'function');
+helperSocket.reset();
+assert.strictEqual(sentData[0], JSON.stringify(buildResetMessage()) + '\n');
+helperSocket.sendJson({ helper: true });
+assert.strictEqual(sentData[1], JSON.stringify({ helper: true }) + '\n');
 
 console.log('utils.test.js: OK');

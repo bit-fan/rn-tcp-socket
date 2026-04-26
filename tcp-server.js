@@ -6,15 +6,17 @@ import {
 } from './utils.js';
 
 export class TcpServer {
-  server;
+  server = null;
   port = DEFAULT_PORT;
   launched = false;
   callback;
   constructor(callback) {
     this.callback = callback;
-    this.server = null;
   }
-  async start() {
+
+  async init() {
+    if (this.server) return;
+
     const mod = await import('react-native-tcp-socket').catch(() => null);
     if (!mod) throw new Error('react-native-tcp-socket not available');
     const TcpSocket = mod.default || mod;
@@ -32,23 +34,29 @@ export class TcpServer {
           (err, raw) => {
             if (typeof this.callback === 'function')
               this.callback({ status: 'error', data: err, raw });
-            if (typeof socket.reset === 'function') {
-              socket.reset();
-            }
+            if (typeof socket.reset === 'function') socket.reset();
           },
         );
       });
-    });
-    this.server.on('error', (e) => {
-      if (typeof this.callback === 'function')
-        this.callback({ status: 'error', data: e });
+
+      socket.on('error', (e) => {
+        if (typeof this.callback === 'function')
+          this.callback({ status: 'error', data: e });
+      });
     });
     this.server.on('close', () => {
-      if (typeof this.callback === 'function')
+      this.launched = false;
+      this.server = null;
+      if (this.callback) {
         this.callback({ status: 'close' });
+      }
+    });
+    this.server.on('error', (e) => {
+      if (e.code !== 'EADDRINUSE' && typeof this.callback === 'function') {
+        this.callback({ status: 'error', data: e });
+      }
     });
   }
-
   sendJson(socket, obj) {
     const ok = utilsSendJson(socket, obj);
     if (!ok && typeof this.callback === 'function') {
@@ -65,52 +73,64 @@ export class TcpServer {
   }
 
   async serverListen(port) {
-    if (!this.server) await this.start();
+    await this.init();
+    const currentPort = port || this.port;
 
-    const listenOnPort = (listenPort) =>
-      new Promise((resolve, reject) => {
-        const onError = async (e) => {
-          if (
-            e &&
-            (e.code === 'EADDRINUSE' ||
-              String(e).toLowerCase().includes('address already in use'))
-          ) {
-            try {
-              this.server.removeListener('error', onError);
-            } catch (_) {}
-            try {
-              this.server.close();
-            } catch (_) {}
-            try {
-              await new Promise((res) => this.server.once('close', res));
-            } catch (_) {}
-            this.server = null;
-            this.port = listenPort + 1;
-            resolve(this.serverListen(this.port));
-            return;
-          }
-          if (typeof this.callback === 'function')
-            this.callback({ status: 'error', data: e });
-          reject(e);
-        };
-
-        const onListening = () => {
+    return new Promise((resolve, reject) => {
+      const onError = async (e) => {
+        cleanup();
+        const isAppInUse =
+          e &&
+          (e.code === 'EADDRINUSE' ||
+            String(e).toLowerCase().includes('address already in use'));
+        if (isAppInUse) {
+          const closeEvent = new Promise((res) =>
+            this.server.once('close', res),
+          );
           try {
-            this.server.removeListener('error', onError);
-          } catch (_) {}
-          const address = this.server.address();
-          this.port = address && address.port ? address.port : listenPort;
-          this.launched = true;
-          if (typeof this.callback === 'function') {
-            this.callback({ status: 'port', data: this.port });
-          }
-          resolve(this.port);
-        };
+            this.server.close();
+          } catch (err) {}
+          await closeEvent;
+          this.server = null;
+          this.port = currentPort + 1;
+          resolve(await this.serverListen(this.port));
+          resolve(result);
+        }
+      };
 
-        this.server.once('error', onError);
-        this.server.listen({ port: listenPort, reuseAddress: true }, onListening);
+      const onListening = () => {
+        cleanup();
+        const address = this.server.address();
+        this.port = address?.port || currentPort;
+        this.launched = true;
+        if (this.callback) {
+          this.callback({ status: 'port', data: this.port });
+        }
+        resolve(this.port);
+      };
+
+      const cleanup = () => {
+        this.server.removeListener('listening', onListening);
+        this.server.removeListener('error', onError);
+      };
+      this.server.once('error', onError);
+      this.server.once('listening', onListening);
+      this.server.listen({
+        port: currentPort,
+        host: '0.0.0.0',
+        reuseAddress: true,
       });
+    });
+  }
 
-    return listenOnPort(port);
+  async stop() {
+    if (this.server) {
+      return new Promise((resolve) => {
+        this.server.close(() => {
+          this.launched = false;
+          resolve();
+        });
+      });
+    }
   }
 }

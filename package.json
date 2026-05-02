@@ -21,5 +21,10 @@
   "dependencies": {
     "firebase": "^12.12.1",
     "react-native-tcp-socket": "^6.4.1"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./firebase": "./firebase/index.js",
+    "./socket": "./socket/index.js"
   }
 }

@@ -46,12 +46,16 @@ export const useWatchFBValue = ({ root, path = '' }, options = {}) => {
 export const useFirebaseWatchDB = ({
   dispatch,
   localDbData,
-  setLocalDBData,
-  setLocalDBInfo,
+  setLocalDbData,
+  setLocalDbInfo,
+  initFirebaseFlag,
 }) => {
-  const { snapshotData: serverDbInfo } = useWatchFBValue({
-    root: FIREBASE_KEYS.DB_INFO,
-  });
+  const { snapshotData: serverDbInfo } = useWatchFBValue(
+    {
+      root: FIREBASE_KEYS.DB_INFO,
+    },
+    { initFirebaseFlag },
+  );
   console.log('serverDbInfo', serverDbInfo);
   const watchHistoryKeys = serverDbInfo
     ? Object.keys(serverDbInfo).filter((key) =>
@@ -70,7 +74,7 @@ export const useFirebaseWatchDB = ({
       ],
       [serverDbInfo],
     ),
-    dispatchActions: { setLocalDBData, setLocalDBInfo },
+    dispatchActions: { setLocalDbData, setLocalDbInfo },
   });
 
   console.log('localDbData', localDbData);
@@ -82,7 +86,7 @@ export const useWatchUpdateDB = ({
   dbName,
   localDbInfo,
   serverDbInfo,
-  dispatchActions: { setLocalDBData = () => {}, setLocalDBInfo = () => {} },
+  dispatchActions: { setLocalDbData = () => {}, setLocalDbInfo = () => {} },
 }) => {
   const localInfoRef = useRef(localDbInfo);
   useEffect(() => {
@@ -97,14 +101,14 @@ export const useWatchUpdateDB = ({
       try {
         const snapshot = await get(ref(getDatabase(), name));
         dispatch(
-          setLocalDBData({ [name]: snapshot.exists() ? snapshot.val() : {} }),
+          setLocalDbData({ [name]: snapshot.exists() ? snapshot.val() : {} }),
         );
-        dispatch(setLocalDBInfo({ [name]: { lastModified: serverTS } }));
+        dispatch(setLocalDbInfo({ [name]: { lastModified: serverTS } }));
       } catch (e) {
         storeFBError(e);
       }
     },
-    [serverDbInfo, dispatch, setLocalDBData, setLocalDBInfo],
+    [serverDbInfo, dispatch, setLocalDbData, setLocalDbInfo],
   );
 
   useEffect(() => {

@@ -1,0 +1,29 @@
+import { getDatabase, push, ref, update } from 'firebase/database';
+import { UpdatDbInfoObj } from './config';
+
+export const updateFirebaseDB = async (key, value) => {
+  try {
+    const db = getDatabase();
+    const [root] = key.split('/');
+    const updates = {};
+    updates[key] = value;
+    Object.assign(updates, UpdatDbInfoObj(root));
+    await update(ref(db), updates);
+  } catch (e) {
+    storeFBError(e);
+  }
+};
+
+export const storeFBError = async (e) => {
+  try {
+    const db = getDatabase();
+    // push() generates a unique, timestamp-based key automatically
+    await push(ref(db, 'errors/'), {
+      message: e.message || 'Unknown Error',
+      stack: e.stack || null,
+      timestamp: new Date().toLocaleString(),
+    });
+  } catch (err) {
+    console.error('Failed to log error to Firebase:', err);
+  }
+};

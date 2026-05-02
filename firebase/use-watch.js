@@ -62,6 +62,9 @@ export const useFirebaseWatchDB = ({
         key.startsWith(FIREBASE_KEYS.COLLECTION_HISTORY),
       )
     : [];
+  const dispatchActions = useMemo(() => {
+    return { setLocalDbData, setLocalDbInfo };
+  }, [setLocalDbData, setLocalDbInfo]);
   useWatchUpdateDB({
     dispatch,
     localDbData,
@@ -74,7 +77,7 @@ export const useFirebaseWatchDB = ({
       ],
       [serverDbInfo],
     ),
-    dispatchActions: { setLocalDbData, setLocalDbInfo },
+    dispatchActions,
   });
 
   console.log('localDbData', localDbData);
@@ -86,43 +89,59 @@ export const useWatchUpdateDB = ({
   dbName,
   localDbInfo,
   serverDbInfo,
-  dispatchActions: { setLocalDbData = () => {}, setLocalDbInfo = () => {} },
+  dispatchActions,
 }) => {
+  const processingRef = useRef(new Set());
   const localInfoRef = useRef(localDbInfo);
   useEffect(() => {
     localInfoRef.current = localDbInfo;
   }, [localDbInfo]);
   console.log('serverDbInfo, dbName', { serverDbInfo, dbName, localDbInfo });
+  const actionsRef = useRef(dispatchActions);
+  useEffect(() => {
+    actionsRef.current = dispatchActions;
+  }, [dispatchActions]);
   const fetchAndUpdateDb = useCallback(
     async (name) => {
       const serverTS = serverDbInfo[name]?.lastModified;
       const localTS = localInfoRef.current?.[name]?.lastModified;
-      if (serverTS === localTS) return;
+      if (!serverTS || serverTS === localTS) return;
       try {
         const snapshot = await get(ref(getDatabase(), name));
         dispatch(
-          setLocalDbData({ [name]: snapshot.exists() ? snapshot.val() : {} }),
+          actionsRef.current.setLocalDbData({ [name]: snapshot.val() || {} }),
         );
-        dispatch(setLocalDbInfo({ [name]: { lastModified: serverTS } }));
+        dispatch(
+          actionsRef.current.setLocalDbInfo({
+            [name]: { lastModified: serverTS },
+          }),
+        );
       } catch (e) {
         storeFBError(e);
       }
     },
-    [serverDbInfo, dispatch, setLocalDbData, setLocalDbInfo],
+    [serverDbInfo, dispatch],
   );
 
   useEffect(() => {
     if (!serverDbInfo || !dbName) return;
     const runUpdates = async () => {
-      if (Array.isArray(dbName)) {
-        for (const name of dbName) {
+      const names = Array.isArray(dbName) ? dbName : [dbName];
+      for (const name of names) {
+        const serverTS = serverDbInfo[name]?.lastModified;
+        const localTS = localInfoRef.current?.[name]?.lastModified;
+        if (
+          serverTS &&
+          serverTS !== localTS &&
+          !processingRef.current.has(name)
+        ) {
+          processingRef.current.add(name);
           await fetchAndUpdateDb(name);
+          processingRef.current.delete(name);
         }
-      } else {
-        await fetchAndUpdateDb(dbName);
       }
     };
     runUpdates();
-  }, [serverDbInfo, dbName, fetchAndUpdateDb]);
+  }, [serverDbInfo, JSON.stringify(dbName), fetchAndUpdateDb]);
   return {};
 };

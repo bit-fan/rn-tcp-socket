@@ -4,4 +4,9 @@ export {
   FIREBASE_KEYS,
   UpdatDbInfoObj,
 } from './config';
-export { useWatchFBValue, useFirebaseWatchDB, useWatchUpdateDB } from './use-watch';
+export {
+  useWatchFBValue,
+  useFirebaseWatchDB,
+  useWatchUpdateDB,
+} from './use-watch';
+export * from './util';

@@ -1,13 +1,15 @@
 import { getDatabase, push, ref, update } from 'firebase/database';
 import { UpdatDbInfoObj } from './config';
 
-export const updateFirebaseDB = async (key, value) => {
+export const updateFirebaseDB = async (arr = []) => {
   try {
     const db = getDatabase();
-    const [root] = key.split('/');
     const updates = {};
-    updates[key] = value;
-    Object.assign(updates, UpdatDbInfoObj(root));
+    arr.forEach(({ key, value }) => {
+      updates[key] = value;
+      const [root] = key.split('/');
+      Object.assign(updates, UpdatDbInfoObj(root));
+    });
     await update(ref(db), updates);
   } catch (e) {
     storeFBError(e);

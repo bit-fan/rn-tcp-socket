@@ -22,8 +22,11 @@ export const useWatchFBValue = ({ root, path = '' }, options = {}) => {
     const unsubscribe = onValue(
       ref(getDatabase(), [root, path].filter(Boolean).join('/')),
       (snapshot) => {
-        if (!snapshot.exists()) return [];
-
+        if (!snapshot.exists()) {
+          setSnapshotData(null);
+          setData([]);
+          return;
+        }
         setSnapshotData(snapshot.val());
         const deviceArray = [];
         snapshot.forEach((child) => {
@@ -35,113 +38,87 @@ export const useWatchFBValue = ({ root, path = '' }, options = {}) => {
         setData(deviceArray);
       },
       (error) => {
-        storeFBError(error);
+        storeFBError(error, { useWatchFBValue: '', root, path });
       },
     );
     return () => unsubscribe();
   }, [initFirebaseFlag, root, path]);
-
   return { data, snapshotData };
 };
 export const useFirebaseWatchDB = ({
   dispatch,
-  localDbData,
-  setLocalDbData,
-  setLocalDbInfo,
+  getLocalDbInfo,
+  getActions,
   initFirebaseFlag,
 }) => {
   const { snapshotData: serverDbInfo } = useWatchFBValue(
-    {
-      root: FIREBASE_KEYS.DB_INFO,
-    },
+    { root: FIREBASE_KEYS.DB_INFO },
     { initFirebaseFlag },
   );
-  console.log('serverDbInfo', serverDbInfo);
-  const watchHistoryKeys = serverDbInfo
-    ? Object.keys(serverDbInfo).filter((key) =>
-        key.startsWith(FIREBASE_KEYS.COLLECTION_HISTORY),
-      )
-    : [];
-  const dispatchActions = useMemo(() => {
-    return { setLocalDbData, setLocalDbInfo };
-  }, [setLocalDbData, setLocalDbInfo]);
+  const watchHistoryKeys = useMemo(() => {
+    if (!serverDbInfo) return [];
+    return Object.keys(serverDbInfo).filter((key) =>
+      key.startsWith(FIREBASE_KEYS.COLLECTION_HISTORY),
+    );
+  }, [serverDbInfo]);
+  const stableDbNames = useMemo(
+    () => [
+      FIREBASE_KEYS.COLLECTION_DEVICE,
+      FIREBASE_KEYS.COLLECTION_FAVOURITE,
+      ...watchHistoryKeys,
+    ],
+    [watchHistoryKeys],
+  );
   useWatchUpdateDB({
     dispatch,
-    localDbData,
+    dbName: stableDbNames, // Pass the stable memoized array
+    getLocalDbInfo,
     serverDbInfo,
-    dbName: useMemo(
-      () => [
-        FIREBASE_KEYS.COLLECTION_DEVICE,
-        FIREBASE_KEYS.COLLECTION_FAVOURITE,
-        ...watchHistoryKeys,
-      ],
-      [serverDbInfo],
-    ),
-    dispatchActions,
+    getActions,
   });
-
-  console.log('localDbData', localDbData);
-  console.log('serverDbInfo', serverDbInfo);
   return { serverDbInfo };
 };
 export const useWatchUpdateDB = ({
   dispatch,
   dbName,
-  localDbInfo,
+  getLocalDbInfo,
   serverDbInfo,
-  dispatchActions,
+  getActions,
 }) => {
   const processingRef = useRef(new Set());
-  const localInfoRef = useRef(localDbInfo);
-  useEffect(() => {
-    localInfoRef.current = localDbInfo;
-  }, [localDbInfo]);
-  console.log('serverDbInfo, dbName', { serverDbInfo, dbName, localDbInfo });
-  const actionsRef = useRef(dispatchActions);
-  useEffect(() => {
-    actionsRef.current = dispatchActions;
-  }, [dispatchActions]);
   const fetchAndUpdateDb = useCallback(
-    async (name) => {
-      const serverTS = serverDbInfo[name]?.lastModified;
-      const localTS = localInfoRef.current?.[name]?.lastModified;
-      if (!serverTS || serverTS === localTS) return;
+    async (name, serverTS) => {
       try {
         const snapshot = await get(ref(getDatabase(), name));
+        const data = snapshot.val() || {};
+        dispatch(getActions()?.setLocalDbData({ [name]: data }));
         dispatch(
-          actionsRef.current.setLocalDbData({ [name]: snapshot.val() || {} }),
-        );
-        dispatch(
-          actionsRef.current.setLocalDbInfo({
-            [name]: { lastModified: serverTS },
-          }),
+          getActions()?.setLocalDbInfo({ [name]: { lastModified: serverTS } }),
         );
       } catch (e) {
         storeFBError(e);
       }
     },
-    [serverDbInfo, dispatch],
+    [dispatch],
   );
-
   useEffect(() => {
     if (!serverDbInfo || !dbName) return;
     const runUpdates = async () => {
-      const names = Array.isArray(dbName) ? dbName : [dbName];
-      for (const name of names) {
+      for (const name of dbName) {
         const serverTS = serverDbInfo[name]?.lastModified;
-        const localTS = localInfoRef.current?.[name]?.lastModified;
+        const localTS = getLocalDbInfo()?.[name]?.lastModified; // Use prop directly for comparison
         if (
           serverTS &&
           serverTS !== localTS &&
           !processingRef.current.has(name)
         ) {
           processingRef.current.add(name);
-          await fetchAndUpdateDb(name);
+          await fetchAndUpdateDb(name, serverTS);
           processingRef.current.delete(name);
         }
       }
     };
     runUpdates();
-  }, [serverDbInfo, JSON.stringify(dbName), fetchAndUpdateDb]);
+  }, [serverDbInfo, dbName, fetchAndUpdateDb]);
   return {};
 };

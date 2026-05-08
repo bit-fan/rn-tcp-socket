@@ -10,3 +10,4 @@ export {
   useWatchUpdateDB,
 } from './use-watch';
 export * from './util';
+export * from './firebaseSlice';

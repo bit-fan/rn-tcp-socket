@@ -9,5 +9,6 @@ export const SOCKET_ACTION_KEYS = {
     INFO: 'video:info',
     PLAYLIST: 'video:playlist',
     PLAYLIST_MOVE: 'video:playlist-move',
+    PLAYLIST_INDEX: 'video:playlist-index',
   },
 };

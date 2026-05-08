@@ -9,10 +9,13 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FIREBASE_DOC_KEY, FIREBASE_KEYS, UpdatDbInfoObj } from './config';
 import { storeFBError } from './util';
+import { setLocalDbData, setLocalDbInfo } from './firebaseSlice';
+import { useDispatch, useSelector } from 'react-redux';
 export const useWatchFBValue = ({ root, path = '' }, options = {}) => {
   const { initFirebaseFlag = false } = options;
   const [snapshotData, setSnapshotData] = useState(null);
   const [data, setData] = useState(null);
+  const fullPath = [root, path].filter(Boolean).join('/');
   useEffect(() => {
     if (!initFirebaseFlag) {
       setSnapshotData(null);
@@ -20,7 +23,7 @@ export const useWatchFBValue = ({ root, path = '' }, options = {}) => {
       return;
     }
     const unsubscribe = onValue(
-      ref(getDatabase(), [root, path].filter(Boolean).join('/')),
+      ref(getDatabase(), fullPath),
       (snapshot) => {
         if (!snapshot.exists()) {
           setSnapshotData(null);
@@ -38,19 +41,27 @@ export const useWatchFBValue = ({ root, path = '' }, options = {}) => {
         setData(deviceArray);
       },
       (error) => {
-        storeFBError(error, { useWatchFBValue: '', root, path });
+        storeFBError(error, { useWatchFBValue: '', fullPath });
       },
     );
     return () => unsubscribe();
-  }, [initFirebaseFlag, root, path]);
+  }, [initFirebaseFlag, fullPath]);
   return { data, snapshotData };
 };
-export const useFirebaseWatchDB = ({
-  dispatch,
-  getLocalDbInfo,
-  getActions,
-  initFirebaseFlag,
-}) => {
+export const useFirebaseWatchDB = () => {
+  const dispatch = useDispatch();
+  const localDbInfo = useSelector((s) => s.setting.localDbInfo);
+  const localDbInfoRef = useRef(localDbInfo);
+  const getLocalDbInfo = () => localDbInfoRef.current;
+  const getActions = () => actionsRef.current;
+  const actionsRef = useRef({ setLocalDbData, setLocalDbInfo });
+  useEffect(() => {
+    localDbInfoRef.current = localDbInfo;
+  }, [localDbInfo]);
+  useEffect(() => {
+    actionsRef.current = { setLocalDbData, setLocalDbInfo };
+  }, [setLocalDbData, setLocalDbInfo]);
+  const initFirebaseFlag = useSelector((s) => s.firebase.initFirebase);
   const { snapshotData: serverDbInfo } = useWatchFBValue(
     { root: FIREBASE_KEYS.DB_INFO },
     { initFirebaseFlag },

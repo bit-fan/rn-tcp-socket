@@ -19,8 +19,10 @@
   },
   "homepage": "https://github.com/bit-fan/rn-tcp-socket#readme",
   "dependencies": {
+    "@reduxjs/toolkit": "^2.11.2",
     "firebase": "^12.12.1",
-    "react-native-tcp-socket": "^6.4.1"
+    "react-native-tcp-socket": "^6.4.1",
+    "react-redux": "^9.2.0"
   },
   "sideEffects": false,
   "exports": {

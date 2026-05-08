@@ -1,4 +1,4 @@
-import { serverTimestamp } from "firebase/database";
+import { serverTimestamp } from 'firebase/database';
 
 export const FIREBASE_DOC_KEY = 'FB_ID';
 export const FB_SERVER_DEVICE_ID = 999;

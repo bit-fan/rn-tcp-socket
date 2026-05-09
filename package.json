@@ -1,6 +1,6 @@
 {
   "name": "@bit-fan/rn-tcp-socket",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "to abstract RN TCP server",
   "type": "module",
   "main": "index.js",

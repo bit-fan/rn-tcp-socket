@@ -11,3 +11,4 @@ export {
 } from './use-watch';
 export * from './util';
 export * from './firebaseSlice';
+export * from './persist';

@@ -50,7 +50,7 @@ export const useWatchFBValue = ({ root, path = '' }, options = {}) => {
 };
 export const useFirebaseWatchDB = () => {
   const dispatch = useDispatch();
-  const localDbInfo = useSelector((s) => s.setting.localDbInfo);
+  const localDbInfo = useSelector((s) => s.firebase.localDbInfo);
   const localDbInfoRef = useRef(localDbInfo);
   const getLocalDbInfo = () => localDbInfoRef.current;
   const getActions = () => actionsRef.current;

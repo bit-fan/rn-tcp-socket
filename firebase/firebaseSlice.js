@@ -7,7 +7,6 @@ const initialState = {
   initFirebase: false,
   firebaseConfig: null,
 };
-
 const firebaseSlice = createSlice({
   name: 'firebase',
   initialState,
@@ -33,7 +32,6 @@ export const getMyDevice = createSelector(
   (state) => state.firebase.localDbData?.device,
   (state) => state.setting.myName,
   (deviceObj, myName) => {
-    console.log('deviceObj, myName', deviceObj, myName);
     return deviceObj?.[myName];
   },
 );

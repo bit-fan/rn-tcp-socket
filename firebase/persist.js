@@ -5,13 +5,16 @@ const actions = [
     type: '^setting\/(?!setSettingAll)',
     storageKey: 'SETTING_DEVICE',
     data: (state) => state.setting,
-    setter: (data) => (data) => {},
+    setter: (data) => (data) => {return data},
   },
   {
     type: '^firebase\//(?!setInitFirebase)',
     storageKey: 'FIREBASE_DATA',
     data: (state) => state.firebase,
-    setter: (data) => (data) => {},
+    setter: (data) => (data) => {
+      const newData={...data};
+      delete newData.initFirebase;
+      return newData;}
   },
 ];
 export const listenObj = (actions, AsyncStorage) => {

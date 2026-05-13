@@ -1,5 +1,5 @@
-import { getDatabase, push, ref, update } from 'firebase/database';
-import { UpdatDbInfoObj } from './config';
+import { getDatabase, push, ref, serverTimestamp, update } from 'firebase/database';
+import { FIREBASE_KEYS, UpdatDbInfoObj } from './config';
 
 export const updateFirebaseDB = async (arr = []) => {
   try {
@@ -27,5 +27,24 @@ export const storeFBError = async (e) => {
     });
   } catch (err) {
     console.error('Failed to log error to Firebase:', err);
+  }
+};
+
+export const commandToDevice = async ({ device, type, data }) => {
+  const db = getDatabase();
+
+  const newCommand = {
+    type,
+    data,
+    timestamp: serverTimestamp(),
+  };
+
+  try {
+    const commandRef = ref(db, `${FIREBASE_KEYS.COLLECTION_DEVICE}_${device}`);
+    const result = await push(commandRef, newCommand);
+    return result.key;
+  } catch (error) {
+    console.error('Failed to send command to device:', device, error);
+    throw error;
   }
 };

@@ -5,6 +5,9 @@ import {
   ref,
   update,
   serverTimestamp,
+  remove,
+  orderByChild,
+  query,
 } from 'firebase/database';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FIREBASE_DOC_KEY, FIREBASE_KEYS, UpdatDbInfoObj } from './config';
@@ -120,7 +123,7 @@ export const useWatchUpdateDB = ({
         const localTS = getLocalDbInfo()?.[name]?.lastModified; // Use prop directly for comparison
         if (
           serverTS &&
-          serverTS !== localTS &&
+          serverTS > localTS &&
           !processingRef.current.has(name)
         ) {
           processingRef.current.add(name);
@@ -132,4 +135,87 @@ export const useWatchUpdateDB = ({
     runUpdates();
   }, [serverDbInfo, dbName, fetchAndUpdateDb]);
   return {};
+};
+export const useWatchDeviceCommand = ({
+  device,
+  commandCallback,
+  timeThresholdMs = 60000,
+}) => {
+  const callbackRef = useRef(commandCallback);
+  const seenIds = useRef(new Set());
+
+  useEffect(() => {
+    callbackRef.current = commandCallback;
+  }, [commandCallback]);
+
+  useEffect(() => {
+    if (!device) return;
+
+    const db = getDatabase();
+    const commandPath = `${FIREBASE_KEYS.COLLECTION_DEVICE}_${device}`;
+    const commandQuery = query(ref(db, commandPath), orderByChild('timestamp'));
+
+    const unsubscribe = onValue(
+      commandQuery,
+      async (snapshot) => {
+        if (!snapshot.exists()) {
+          return;
+        }
+
+        const now = Date.now();
+        const freshCommands = [];
+        const expiredUpdates = {};
+
+        snapshot.forEach((child) => {
+          const commandKey = child.key;
+          const data = child.val();
+          const timestamp = data.timestamp || now;
+
+          if (now - timestamp > timeThresholdMs) {
+            expiredUpdates[commandKey] = null;
+            return;
+          }
+          if (!seenIds.current.has(commandKey)) {
+            seenIds.current.add(commandKey);
+            freshCommands.push({
+              [FIREBASE_DOC_KEY]: commandKey,
+              data: { ...data },
+              ack: async () => {
+                try {
+                  await update(ref(db, commandPath), { [commandKey]: null });
+                } catch (e) {
+                  storeFBError(error, {
+                    onclearingcommand: '',
+                    device,
+                    commandKey,
+                  });
+                }
+              },
+            });
+          }
+        });
+        if (Object.keys(expiredUpdates).length > 0) {
+          try {
+            await update(ref(db, commandPath), expiredUpdates);
+          } catch (e) {
+            storeFBError(e, {
+              type: 'Batch expiry failed',
+              expiredUpdates,
+            });
+          }
+        }
+        if (freshCommands.length > 0 && callbackRef.current) {
+          callbackRef.current(freshCommands);
+        }
+      },
+      (error) => {
+        storeFBError(error, { ondeviceCommand: '', device });
+      },
+    );
+
+    return () => {
+      unsubscribe();
+      seenIds.current.clear();
+    };
+  }, [device, timeThresholdMs]);
 };

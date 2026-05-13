@@ -4,11 +4,9 @@ export {
   FIREBASE_KEYS,
   UpdatDbInfoObj,
 } from './config';
-export {
-  useWatchFBValue,
-  useFirebaseWatchDB,
-  useWatchUpdateDB,
-} from './use-watch';
+export * from './use-watch';
 export * from './util';
 export * from './firebaseSlice';
 export * from './persist';
+export * from './persist';
+export * from './use-firebase-progress';

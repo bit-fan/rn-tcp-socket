@@ -30,7 +30,9 @@ export const useFirebaseProgress = ({
       playlistRef.current,
       isSyncDb,
     );
-    if(!isSyncDb){updateLocalDb(dispatch, payload);}
+    if (!isSyncDb) {
+      updateLocalDb(dispatch, payload);
+    }
     await update(ref(getDatabase()), payload);
   };
   useEffect(() => {
@@ -72,7 +74,7 @@ const constructProgressPayload = (videoInfo, myName, playlist, isSyncDb) => {
     lastModified: serverTimestamp(),
   };
   const time = new Date();
-  const { duration, progress, source, title, url } = videoInfo;
+  const { duration, progress = 0, source, title, url } = videoInfo;
 
   const videoKey = getSelectionKey(videoInfo, myName);
   const dbName = getDBName(time);

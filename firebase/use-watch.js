@@ -123,7 +123,7 @@ export const useWatchUpdateDB = ({
         const localTS = getLocalDbInfo()?.[name]?.lastModified; // Use prop directly for comparison
         if (
           serverTS &&
-          serverTS > localTS &&
+          (serverTS > localTS || !localTS) &&
           !processingRef.current.has(name)
         ) {
           processingRef.current.add(name);

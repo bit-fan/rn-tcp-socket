@@ -51,7 +51,7 @@ export const useWatchFBValue = ({ root, path = '' }, options = {}) => {
   }, [initFirebaseFlag, fullPath]);
   return { data, snapshotData };
 };
-export const useFirebaseWatchDB = () => {
+export const useFirebaseWatchDB = ({ withHistory = false }) => {
   const dispatch = useDispatch();
   const localDbInfo = useSelector((s) => s.firebase.localDbInfo);
   const localDbInfoRef = useRef(localDbInfo);
@@ -70,11 +70,11 @@ export const useFirebaseWatchDB = () => {
     { initFirebaseFlag },
   );
   const watchHistoryKeys = useMemo(() => {
-    if (!serverDbInfo) return [];
+    if (!serverDbInfo || !withHistory) return [];
     return Object.keys(serverDbInfo).filter((key) =>
       key.startsWith(FIREBASE_KEYS.COLLECTION_HISTORY),
     );
-  }, [serverDbInfo]);
+  }, [withHistory, serverDbInfo]);
   const stableDbNames = useMemo(
     () => [
       FIREBASE_KEYS.COLLECTION_DEVICE,

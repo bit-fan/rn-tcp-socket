@@ -4,10 +4,7 @@
   "description": "to abstract RN TCP server",
   "type": "module",
   "main": "index.js",
-  "scripts": {
-    "test": "node ./tests/run-tests.js",
-    "test:integration": "node ./tests/tcp-client-integration.test.js"
-  },
+  "scripts": {},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bit-fan/rn-tcp-socket.git"

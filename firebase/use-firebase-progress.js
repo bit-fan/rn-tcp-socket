@@ -36,7 +36,7 @@ export const useFirebaseProgress = ({
     await update(ref(getDatabase()), payload);
   };
   useEffect(() => {
-    if (!props.url) return;
+    if (!props.url || propsRef.current?.isPaused) return;
     const int = setInterval(() => {
       if (
         propsRef.current?.progress &&

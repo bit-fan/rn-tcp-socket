@@ -63,7 +63,7 @@ export const getHistoryRange = createSelector(
     (state) => state.playlist.lhistoryToDate,
   ],
   (localDbData, toDate) => {
-    const obj = Object.entries(localDbData)
+    const sectionArr = Object.entries(localDbData)
       .filter(([key, value]) => {
         const toRemove = `${FIREBASE_KEYS.COLLECTION_HISTORY}_`;
         if (!key.startsWith(toRemove)) return false;
@@ -78,7 +78,11 @@ export const getHistoryRange = createSelector(
         return Object.entries(value)
           .map(([url, data]) => {
             if (typeof data === 'object' && data.title && data.watchTime) {
-              return { [FIREBASE_DOC_KEY]: url, ...data };
+              return {
+                ...data,
+                [FIREBASE_DOC_KEY]: url,
+                watchTime: new Date(data.watchTime).getTime(),
+              };
             } else {
               return null;
             }
@@ -86,7 +90,18 @@ export const getHistoryRange = createSelector(
           .filter(Boolean)
           .sort((a, b) => (a.watchTime > b.watchTime ? -1 : 1));
       });
-    return obj;
+    const foundUrl = {};
+    const resultArr = [],
+      duplicateArr = [];
+    sectionArr.flat().forEach((a) => {
+      if (foundUrl[a[FIREBASE_DOC_KEY]]) {
+        duplicateArr.push(a);
+      } else {
+        resultArr.push(a);
+        foundUrl[a[FIREBASE_DOC_KEY]] = true;
+      }
+    });
+    return { resultArr, duplicateArr };
   },
 );
 export const {

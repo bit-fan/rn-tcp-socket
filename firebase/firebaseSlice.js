@@ -1,5 +1,5 @@
 import { createSelector, createSlice } from '@reduxjs/toolkit';
-import { FIREBASE_DOC_KEY, FirebaseConfig } from './config';
+import { FIREBASE_DOC_KEY, FIREBASE_KEYS, FirebaseConfig } from './config';
 const initialState = {
   localDbInfo: {},
   localDbData: {},
@@ -55,6 +55,38 @@ export const getFavouriteArray = createSelector(
         ...value,
       }))
       .sort((a, b) => (a?.watchTime > b?.watchTime ? 1 : -1));
+  },
+);
+export const getHistoryRange = createSelector(
+  [
+    (state) => state.firebase.localDbData,
+    (state) => state.playlist.lhistoryToDate,
+  ],
+  (localDbData, toDate) => {
+    const obj = Object.entries(localDbData)
+      .filter(([key, value]) => {
+        const toRemove = `${FIREBASE_KEYS.COLLECTION_HISTORY}_`;
+        if (!key.startsWith(toRemove)) return false;
+        if (toDate && key.replace(toRemove, '') < toDate) {
+          return false;
+        }
+        return true;
+      })
+      .sort((a, b) => (a[0] > b[0] ? -1 : 1))
+      .map((obj) => {
+        const [key, value] = obj;
+        return Object.entries(value)
+          .map(([url, data]) => {
+            if (typeof data === 'object' && data.title && data.watchTime) {
+              return { [FIREBASE_DOC_KEY]: url, ...data };
+            } else {
+              return null;
+            }
+          })
+          .filter(Boolean)
+          .sort((a, b) => (a.watchTime > b.watchTime ? -1 : 1));
+      });
+    return obj;
   },
 );
 export const {

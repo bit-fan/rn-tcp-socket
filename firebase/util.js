@@ -1,5 +1,12 @@
-import { getDatabase, push, ref, serverTimestamp, update } from 'firebase/database';
-import { FIREBASE_KEYS, UpdatDbInfoObj } from './config';
+import {
+  getDatabase,
+  push,
+  ref,
+  serverTimestamp,
+  update,
+} from 'firebase/database';
+import { FIREBASE_DOC_KEY, FIREBASE_KEYS, UpdatDbInfoObj } from './config';
+import { getDBName } from './use-firebase-progress';
 
 export const updateFirebaseDB = async (arr = []) => {
   try {
@@ -15,7 +22,26 @@ export const updateFirebaseDB = async (arr = []) => {
     storeFBError(e);
   }
 };
+export const removeProgressData = async (arr = []) => {
+  try {
+    const db = getDatabase();
+    const updates = {};
+    arr.forEach((obj) => {
+      const { [FIREBASE_DOC_KEY]: fbKey, ...rest } = obj;
+      const dbName = getDBName(new Date(rest.watchTime));
+      updates[`${FIREBASE_KEYS.COLLECTION_HISTORY}_${dbName}/${fbKey}`] = null;
 
+      updates[
+        `${FIREBASE_KEYS.DB_INFO}/${FIREBASE_KEYS.COLLECTION_HISTORY}_${dbName}`
+      ] = {
+        lastModified: serverTimestamp(),
+      };
+    });
+    await update(ref(db), updates);
+  } catch (e) {
+    storeFBError(e);
+  }
+};
 export const storeFBError = async (e) => {
   try {
     const db = getDatabase();

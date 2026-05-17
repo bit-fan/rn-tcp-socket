@@ -84,7 +84,7 @@ const constructProgressPayload = (videoInfo, myName, playlist, isSyncDb) => {
     source: myName,
     title,
     url,
-    watchTime: time,
+    watchTime: time.getTime(),
   };
   if (playlist[FIREBASE_DOC_KEY]) {
     const { [FIREBASE_DOC_KEY]: docId, ...rest } = playlist;
@@ -108,6 +108,6 @@ const constructProgressPayload = (videoInfo, myName, playlist, isSyncDb) => {
 };
 const getSelectionKey = (data, myName) =>
   data.url.replace(/[.#$/[\]]/g, '_') + '_' + (myName || 'unknown');
-const getDBName = (date) => {
+export const getDBName = (date) => {
   return [date.getFullYear(), `0${date.getMonth()}`.slice(-2)].join('_');
 };

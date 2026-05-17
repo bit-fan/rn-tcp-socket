@@ -51,7 +51,7 @@ export const useWatchFBValue = ({ root, path = '' }, options = {}) => {
   }, [initFirebaseFlag, fullPath]);
   return { data, snapshotData };
 };
-export const useFirebaseWatchDB = ({ withHistory = false }) => {
+export const useFirebaseWatchDB = (withHistory = false) => {
   const dispatch = useDispatch();
   const localDbInfo = useSelector((s) => s.firebase.localDbInfo);
   const localDbInfoRef = useRef(localDbInfo);

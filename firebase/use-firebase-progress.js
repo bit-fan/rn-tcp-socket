@@ -16,6 +16,9 @@ export const useFirebaseProgress = ({
 
   useEffect(() => {
     propsRef.current = props;
+    if (props.isPaused) {
+      updateProgress(false);
+    }
   }, [props]);
   useEffect(() => {
     playlistRef.current = playlist;

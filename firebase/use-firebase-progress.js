@@ -36,9 +36,10 @@ export const useFirebaseProgress = ({
     await update(ref(getDatabase()), payload);
   };
   useEffect(() => {
-    if (!props.url || propsRef.current?.isPaused) return;
+    if (!props.url) return;
     const int = setInterval(() => {
       if (
+        !propsRef.current?.isPaused &&
         propsRef.current?.progress &&
         propsRef.current?.duration &&
         myNameRef.current
@@ -108,6 +109,7 @@ const constructProgressPayload = (videoInfo, myName, playlist, isSyncDb) => {
 };
 const getSelectionKey = (data, myName) =>
   data.url.replace(/[.#$/[\]]/g, '_') + '_' + (myName || 'unknown');
-export const getDBName = (date) => {
+export const getDBName = (date1) => {
+  const date = date1 instanceof Date && !isNaN(date1) ? date1 : new Date(date1);
   return [date.getFullYear(), `0${date.getMonth()}`.slice(-2)].join('_');
 };

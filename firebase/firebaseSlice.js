@@ -45,6 +45,20 @@ export const getDeviceArray = createSelector(
     }));
   },
 );
+export const getAllHistoryDates = createSelector(
+  [(state) => state.firebase.localDbData],
+  (localDbData) => {
+    const dateArr = Object.entries(localDbData)
+      .map(([key, value]) => {
+        const toRemove = `${FIREBASE_KEYS.COLLECTION_HISTORY}_`;
+        if (!key.startsWith(toRemove)) return false;
+        return key.replace(toRemove, '');
+      })
+      .filter(Boolean)
+      .sort((a, b) => (a < b ? 1 : -1));
+    return dateArr;
+  },
+);
 export const getFavouriteArray = createSelector(
   [(state) => state.firebase.localDbData?.favourite],
   (favouriteObj) => {
@@ -60,7 +74,7 @@ export const getFavouriteArray = createSelector(
 export const getHistoryRange = createSelector(
   [
     (state) => state.firebase.localDbData,
-    (state) => state.playlist.lhistoryToDate,
+    (state) => state.playlist.historyToDate,
   ],
   (localDbData, toDate) => {
     const sectionArr = Object.entries(localDbData)

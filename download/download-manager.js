@@ -345,9 +345,7 @@ export const DownloadManager = {
         'utf8',
       );
       await DownloadManager.getDiskSpace(true);
-    } catch (e) {
-      
-    }
+    } catch (e) {}
   },
 
   _notifyListeners: async () => {
@@ -375,12 +373,11 @@ export const parseUrlToSegments = async (url) => {
       result.segments.length > 0 &&
       result.segments[0].isMasterPlaylist
     ) {
-      
       const targetMediaUri = result.segments[0].url;
       const subPlaylistUrl = targetMediaUri.startsWith('http')
         ? targetMediaUri
         : `${baseUrl}${targetMediaUri}`;
-      
+
       res = await ReactNativeBlobUtil.config({ fileCache: false }).fetch(
         'GET',
         subPlaylistUrl,
@@ -395,10 +392,8 @@ export const parseUrlToSegments = async (url) => {
       reader.reset();
     }
 
-    
     return { result, baseUrl, rawManifestText: manifestText };
   } catch (e) {
-    
     return { result, baseUrl, error: true };
   }
 };
@@ -470,9 +465,6 @@ export const convertRemoteToLocalM3u8 = async (
     // Ensure the parent directory actually still exists before writing to it
     const folderExists = await ReactNativeBlobUtil.fs.exists(localFolderDir);
     if (!folderExists) {
-      
-        `Target folder structure was cleaned up mid-flight: ${localFolderDir}`,
-      );
       return null;
     }
 
@@ -484,7 +476,6 @@ export const convertRemoteToLocalM3u8 = async (
 
     return `file://${localM3u8Path}`;
   } catch (err) {
-    
     return null;
   }
 };

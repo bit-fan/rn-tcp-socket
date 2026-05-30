@@ -5,16 +5,19 @@ const actions = [
     type: '^setting\/(?!setSettingAll)',
     storageKey: 'SETTING_DEVICE',
     data: (state) => state.setting,
-    setter: (data) => (data) => {return data},
+    setter: (data) => (data) => {
+      return data;
+    },
   },
   {
     type: '^firebase\//(?!setInitFirebase)',
     storageKey: 'FIREBASE_DATA',
     data: (state) => state.firebase,
     setter: (data) => (data) => {
-      const newData={...data};
+      const newData = { ...data };
       delete newData.initFirebase;
-      return newData;}
+      return newData;
+    },
   },
 ];
 export const listenObj = (actions, AsyncStorage) => {
@@ -35,11 +38,6 @@ export const listenObj = (actions, AsyncStorage) => {
       try {
         const state = listenerApi.getState();
         const dataToSave = target.data(state);
-        // console.trace(
-        //   `[Storage] Saving ${target.storageKey}`,
-        //   action.type,
-        //   dataToSave,
-        // );
         await AsyncStorage.setItem(
           target.storageKey,
           JSON.stringify(dataToSave),

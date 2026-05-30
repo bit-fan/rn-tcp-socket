@@ -111,7 +111,7 @@ const constructProgressPayload = (videoInfo, myName, playlist, isSyncDb) => {
   return updates;
 };
 const getSelectionKey = (data, myName) =>
-  data.url.replace(/[.#$/[\]]/g, '_') + '_' + (myName || 'unknown');
+  data.url?.replace(/[.#$/[\]]/g, '_') + '_' + (myName || 'unknown');
 export const getDBName = (date1) => {
   const date = date1 instanceof Date && !isNaN(date1) ? date1 : new Date(date1);
   return [date.getFullYear(), `0${date.getMonth()}`.slice(-2)].join('_');

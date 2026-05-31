@@ -58,24 +58,26 @@ export const DownloadManager = {
   addTask: ({ url, title, location = DEFAULT_DOWNLOAD_DIR }) => {
     if (!url) return;
     if (downloadTasks.has(url)) return downloadTasks.get(url);
-
-    const newTask = {
-      url,
-      title,
-      location,
-      status: DOWNLOAD_STATUS.QUEUED,
-      localUrl: 'file://' + DEFAULT_DOWNLOAD_DIR + '/' + title + '/local.m3u8',
-      progress: 0,
-      downloadedSegments: 0,
-      totalSegments: 0,
-    };
-
+    const newTask = createNewTask({ url, title });
     downloadTasks.set(url, newTask);
     DownloadManager._saveStateToDisk();
     DownloadManager._processQueue();
     return newTask;
   },
-
+  addTasks: (tasks) => {
+    const added = tasks
+      .filter(({ url }) => url && !downloadTasks.has(url))
+      .map(({ url, title, location = DEFAULT_DOWNLOAD_DIR }) => {
+        const newTask = createNewTask({ url, title });
+        downloadTasks.set(url, newTask);
+        return newTask;
+      });
+    if (added.length) {
+      DownloadManager._saveStateToDisk();
+      DownloadManager._processQueue();
+    }
+    return added;
+  },
   toggleTaskState: async ({ url, start } = {}) => {
     if (url) {
       const task = downloadTasks.get(url);
@@ -100,6 +102,20 @@ export const DownloadManager = {
 
     await DownloadManager._saveStateToDisk();
     DownloadManager._processQueue();
+  },
+  wipeDownloadFolder: async () => {
+    try {
+      downloadTasks.forEach((task) => {
+        task.status = DOWNLOAD_STATUS.PAUSED;
+        DownloadManager.removeTask(task.url);
+      });
+      await ReactNativeBlobUtil.fs.unlink(DEFAULT_DOWNLOAD_DIR);
+      await ReactNativeBlobUtil.fs.unlink(STATE_META_PATH);
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to wipe Download folder:', error);
+      return { success: false, error: error.message };
+    }
   },
   removeTask: async (url) => {
     await DownloadManager.toggleTaskState({ url, start: false });
@@ -479,4 +495,20 @@ export const convertRemoteToLocalM3u8 = async (
   } catch (err) {
     return null;
   }
+};
+const createNewTask = ({ url, title }) => {
+  if (!url) return;
+
+  const newTask = {
+    url,
+    title,
+    location: DEFAULT_DOWNLOAD_DIR,
+    status: DOWNLOAD_STATUS.QUEUED,
+    localUrl: 'file://' + DEFAULT_DOWNLOAD_DIR + '/' + title + '/local.m3u8',
+    progress: 0,
+    downloadedSegments: 0,
+    totalSegments: 0,
+  };
+
+  return newTask;
 };

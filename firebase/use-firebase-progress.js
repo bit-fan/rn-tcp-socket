@@ -27,6 +27,9 @@ export const useFirebaseProgress = ({
     myNameRef.current = myName;
   }, [myName]);
   const updateProgress = async (isSyncDb) => {
+    if (!propsRef.current.url) {
+      return;
+    }
     const payload = constructProgressPayload(
       propsRef.current,
       myNameRef.current,
@@ -78,7 +81,13 @@ const constructProgressPayload = (videoInfo, myName, playlist, isSyncDb) => {
     lastModified: serverTimestamp(),
   };
   const time = new Date();
-  const { duration, progress = 0, source, title, url } = videoInfo;
+  const {
+    duration = 0,
+    progress = 0,
+    source = 'unknown',
+    title = 'title',
+    url = 'url',
+  } = videoInfo;
 
   const videoKey = getSelectionKey(videoInfo, myName);
   const dbName = getDBName(time);

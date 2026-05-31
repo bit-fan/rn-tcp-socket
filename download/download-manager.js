@@ -2,15 +2,13 @@ import ReactNativeBlobUtil from 'react-native-blob-util';
 import M3U8FileParser from 'm3u8-file-parser';
 import { updateSystemDiskSpace } from './download-utils';
 export const DOWNLOAD_STATUS = {
-  QUEUED: 'QUEUED',
-  DOWNLOADING: 'DOWNLOADING',
-  PAUSED: 'PAUSED',
-  COMPLETED: 'COMPLETED',
-  FAILED: 'FAILED',
+  QUEUED: '⏳',
+  DOWNLOADING: '⬇️',
+  PAUSED: '⏸️',
+  COMPLETED: '✅',
+  FAILED: '❌',
 };
-
-const MAX_CONCURRENT_TASKS = 2;
-
+let MAX_CONCURRENT_TASKS = 2;
 let downloadTasks = new Map();
 let progressListeners = new Set();
 let activeNetworkRequests = new Map();
@@ -26,8 +24,10 @@ export const DownloadManager = {
     }
     return DisckSpaceObj;
   },
-  initializeAndRestoreTasks: async () => {
+  initializeAndRestoreTasks: async (options = {}) => {
     try {
+      MAX_CONCURRENT_TASKS =
+        options.MAX_CONCURRENT_TASKS || MAX_CONCURRENT_TASKS;
       await DownloadManager.getDiskSpace(true);
       const exists = await ReactNativeBlobUtil.fs.exists(STATE_META_PATH);
       if (!exists) {
@@ -64,6 +64,7 @@ export const DownloadManager = {
       title,
       location,
       status: DOWNLOAD_STATUS.QUEUED,
+      localUrl: 'file://' + DEFAULT_DOWNLOAD_DIR + '/' + title + '/local.m3u8',
       progress: 0,
       downloadedSegments: 0,
       totalSegments: 0,
